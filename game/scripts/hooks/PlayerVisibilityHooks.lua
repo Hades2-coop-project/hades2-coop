@@ -20,6 +20,7 @@ function PlayerVisibilityHooks.post.SetPlayerUnDarkside()
     if IsEmpty(SessionMapState.DarkSide) then
         local hero = HeroContext.GetCurrentHeroContext()
         PlayerVisibilityHelper.TriggerOutline(CoopPlayers.GetPlayerByHero(hero), hero.ObjectId)
+        PlayerVisibilityHelper.TriggerCostume(CoopPlayers.GetPlayerByHero(hero), hero.ObjectId)
     end
 end
 

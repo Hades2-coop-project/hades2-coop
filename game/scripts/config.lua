@@ -21,6 +21,7 @@ local Config = {
         Thickness = 2,
         Threshold = 0.6,
     };
+    Player1Skin = "Models/Melinoe/Melinoe_ArachneArmorH";
     Player2HasOutline = true,
     Player2Outline = {
         R = 0,
@@ -30,6 +31,7 @@ local Config = {
         Thickness = 2,
         Threshold = 0.6,
     };
+    Player2Skin = "Models/Melinoe/Melinoe_ArachneArmorB";
     TextAbovePlayersEnabled = false;
     TextAbovePlayersParams = {
         -- CreateTextBox params

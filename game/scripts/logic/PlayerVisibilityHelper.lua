@@ -14,6 +14,7 @@ local PlayerVisibilityHelper = {}
 function PlayerVisibilityHelper.AddPlayerMarkers(playerId, unit)
     PlayerVisibilityHelper.TriggerOutline(playerId, unit)
     PlayerVisibilityHelper.TriggerText(playerId, unit)
+    PlayerVisibilityHelper.TriggerCostume(playerId, unit)
 end
 
 function PlayerVisibilityHelper.TriggerOutline(playerId, unit)
@@ -34,6 +35,10 @@ function PlayerVisibilityHelper.TriggerText(playerId, unit)
                 })
         )
     end
+end
+
+function PlayerVisibilityHelper.TriggerCostume(playerId, unit)
+    SetThingProperty({Property = "GrannyTexture", Value = Config["Player"..playerId.."Skin"], DestinationId = unit})
 end
 
 return PlayerVisibilityHelper
