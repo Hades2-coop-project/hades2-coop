@@ -21,6 +21,16 @@ local Config = {
         Thickness = 2,
         Threshold = 0.6,
     };
+    -- Set Player 1 costume here
+    -- Possible values:
+    --     "Models/Melinoe/Melinoe_ArachneArmorA" (Emerald)
+    --     "Models/Melinoe/Melinoe_ArachneArmorB" (Azure)
+    --     "Models/Melinoe/Melinoe_ArachneArmorC" (Lavender)
+    --     "Models/Melinoe/Melinoe_ArachneArmorD" (Fuchsia)
+    --     "Models/Melinoe/Melinoe_ArachneArmorE" (Gilded)
+    --     "Models/Melinoe/Melinoe_ArachneArmorF" (Onyx)
+    --     "Models/Melinoe/Melinoe_ArachneArmorG" (Moonlight)
+    --     "Models/Melinoe/Melinoe_ArachneArmorH" (Crimson)
     Player1Skin = "Models/Melinoe/Melinoe_ArachneArmorH";
     Player2HasOutline = true,
     Player2Outline = {
@@ -31,6 +41,7 @@ local Config = {
         Thickness = 2,
         Threshold = 0.6,
     };
+    -- Set Player 2 costume here
     Player2Skin = "Models/Melinoe/Melinoe_ArachneArmorB";
     TextAbovePlayersEnabled = false;
     TextAbovePlayersParams = {
