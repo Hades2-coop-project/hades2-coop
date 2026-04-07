@@ -31,6 +31,7 @@ local Config = {
     --     "Models/Melinoe/Melinoe_ArachneArmorF" (Onyx)
     --     "Models/Melinoe/Melinoe_ArachneArmorG" (Moonlight)
     --     "Models/Melinoe/Melinoe_ArachneArmorH" (Crimson)
+    --     "" (None)
     Player1Skin = "Models/Melinoe/Melinoe_ArachneArmorH";
     Player2HasOutline = true,
     Player2Outline = {
