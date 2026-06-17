@@ -89,22 +89,29 @@ end
 function RunEx.RefreshEnemyAI()
     for _, enemy in pairs(ActiveEnemies) do
         if not enemy.IsDead then
-            killTaggedThreads(enemy.AIThreadName)
-            killWaitUntilThreads(enemy.AINotifyName)
-            Stop({ Id = enemy.ObjectId })
-            StopAnimation({ DestinationId = enemy.ObjectId })
+            -- Staged-AI enemies (bosses like Hecate) drive invulnerability/shield phases from
+            -- inside their stage thread: the stage sets the unit invulnerable on entry and only
+            -- clears it when that same thread completes. Tearing the thread down mid-phase strands
+            -- the invuln flag forever (permanent shield, boss stops attacking) -> co-op softlock
+            -- when player 1 dies during the shield phase. Bosses already re-acquire the surviving
+            -- player through the GetTargetId/getNearestHero hook, so they don't need a hard AI
+            -- restart. Only clear the stale target for them; leave the stage machine intact.
+            if enemy.AIStages ~= nil then
+                enemy.TargetId = nil
+            else
+                killTaggedThreads(enemy.AIThreadName)
+                killWaitUntilThreads(enemy.AINotifyName)
+                Stop({ Id = enemy.ObjectId })
+                StopAnimation({ DestinationId = enemy.ObjectId })
 
-            enemy.TargetId = nil
-            thread(function()
-                if enemy.AIStages ~= nil then
-                    thread(StagedAI, enemy, CurrentRun)
-                else
+                enemy.TargetId = nil
+                thread(function()
                     local aiBehavior = enemy.AIBehavior
                     if aiBehavior ~= nil then
                         thread(SetAI, aiBehavior, enemy, CurrentRun)
                     end
-                end
-            end)
+                end)
+            end
         end
     end
 end
