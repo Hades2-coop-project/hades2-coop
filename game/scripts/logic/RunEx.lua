@@ -86,18 +86,26 @@ function RunEx.RemoveRewardFromAllDefaultDoors()
     end
 end
 
-function RunEx.RefreshEnemyAI()
+---@param targetHero table? Surviving hero to force staged bosses to re-target
+function RunEx.RefreshEnemyAI(targetHero)
+    local targetId = targetHero and targetHero.ObjectId or nil
     for _, enemy in pairs(ActiveEnemies) do
         if not enemy.IsDead then
             -- Staged-AI enemies (bosses like Hecate) drive invulnerability/shield phases from
             -- inside their stage thread: the stage sets the unit invulnerable on entry and only
             -- clears it when that same thread completes. Tearing the thread down mid-phase strands
             -- the invuln flag forever (permanent shield, boss stops attacking) -> co-op softlock
-            -- when player 1 dies during the shield phase. Bosses already re-acquire the surviving
-            -- player through the GetTargetId/getNearestHero hook, so they don't need a hard AI
-            -- restart. Only clear the stale target for them; leave the stage machine intact.
+            -- when player 1 dies during the shield phase. So we must NOT kill the stage machine.
+            -- But simply nulling TargetId is not enough: a stage thread that is parked on the
+            -- now-dead player 1 never re-queries GetTargetId/getNearestHero, so the boss just
+            -- sits there shielded. Force the re-target instead -> pin TargetId straight to the
+            -- surviving hero's unit so the next AI tick aims at a live player, and re-arm target
+            -- acquisition by nudging the AI notify so a parked thread wakes up.
             if enemy.AIStages ~= nil then
-                enemy.TargetId = nil
+                enemy.TargetId = targetId
+                if enemy.AINotifyName ~= nil then
+                    notifyExistingWaiters(enemy.AINotifyName)
+                end
             else
                 killTaggedThreads(enemy.AIThreadName)
                 killWaitUntilThreads(enemy.AINotifyName)

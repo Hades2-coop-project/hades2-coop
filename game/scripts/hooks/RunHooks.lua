@@ -155,7 +155,7 @@ function RunHooks.wrap.KillHero(baseFun, ...)
         end
     end
     -- Unstuck AI
-    HeroContext.RunWithHeroContext(aliveHero, RunEx.RefreshEnemyAI)
+    HeroContext.RunWithHeroContext(aliveHero, RunEx.RefreshEnemyAI, aliveHero)
 end
 
 function RunHooks.pre.LeaveRoom(currentRun, door)
