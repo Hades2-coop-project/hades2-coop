@@ -17,6 +17,16 @@
 
     Re-runnable (idempotent). Use -DryRun to preview without changing anything.
 
+    Pass -Uninstall to reverse the process: removes the mod folders and native plugin,
+    and restores the original Ultimate ASI Loader (renames bink2w64Hooked.dll back to
+    bink2w64.dll). Save games are left untouched.
+
+.PARAMETER Uninstall
+    Remove the mod instead of installing it. Deletes TN_Core / TN_CoopMod from Content\Mods,
+    removes HadesModNativeExtension.asi from each renderer's plugins folder, and (unless
+    -SkipAsiLoader) restores the original bink2w64.dll the loader displaced. No download is
+    performed in this mode.
+
 .PARAMETER GamePath
     Path to the Hades II install root (the folder that contains 'Content') OR directly to a
     Hades2.exe. If omitted, the script auto-detects Steam/Epic installs and falls back to a
@@ -48,6 +58,10 @@
 
 .EXAMPLE
     .\Install-Hades2Coop.ps1 -GamePath "D:\SteamLibrary\steamapps\common\Hades II" -DryRun
+
+.EXAMPLE
+    .\Install-Hades2Coop.ps1 -Uninstall
+    Auto-detect and cleanly remove the co-op mod, restoring the original ASI loader.
 #>
 [CmdletBinding()]
 param(
@@ -57,7 +71,8 @@ param(
     [switch]$SkipAsiLoader,
     [switch]$SkipSaveBackup,
     [switch]$DryRun,
-    [switch]$NoPrompt
+    [switch]$NoPrompt,
+    [switch]$Uninstall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -307,9 +322,88 @@ function Test-Install {
     if ($ok) { Good "Verification passed." } else { Warn "Verification found gaps (see above)." }
 }
 
+# ---------- uninstall steps ----------
+function Uninstall-Mods {
+    param([string]$ModsDir)
+    foreach ($m in $ModFolders) {
+        $dest = Join-Path $ModsDir $m
+        if (Test-Path $dest) {
+            Do-Action "Remove $dest" { Remove-Item $dest -Recurse -Force }
+            Good "Removed mod: $m"
+        } else {
+            Info "Mod '$m' not present (nothing to remove)."
+        }
+    }
+}
+
+function Uninstall-Plugin {
+    param([string]$ExeDir)
+    $plugins = Join-Path $ExeDir 'plugins'
+    $asi = Join-Path $plugins $PluginFile
+    if (Test-Path $asi) {
+        Do-Action "Remove $asi" { Remove-Item $asi -Force }
+        Good "Removed plugin from $plugins"
+    } else {
+        Info "Plugin not present in $plugins."
+    }
+    # tidy up an empty plugins folder we may have created
+    if ((Test-Path $plugins) -and -not (Get-ChildItem $plugins -Force -ErrorAction SilentlyContinue)) {
+        Do-Action "Remove empty $plugins" { Remove-Item $plugins -Force }
+    }
+}
+
+function Uninstall-AsiLoader {
+    param([string]$ExeDir)
+    if ($SkipAsiLoader) { Info "Leaving ASI loader in place (per -SkipAsiLoader)."; return }
+    if (Test-Path (Join-Path $ExeDir 'ReturnOfModding')) { Info "ReturnOfModding present in $ExeDir -> leaving loader untouched."; return }
+
+    $hooked = Join-Path $ExeDir 'bink2w64Hooked.dll'
+    $loader = Join-Path $ExeDir 'bink2w64.dll'
+    if (Test-Path $hooked) {
+        # Reverse our install: drop the loader's bink2w64.dll and restore the game's original.
+        Do-Action "Restore original bink2w64.dll in $ExeDir" {
+            if (Test-Path $loader) { Remove-Item $loader -Force }
+            Move-Item $hooked $loader -Force
+        }
+        Good "Original ASI loader restored in $ExeDir"
+    } else {
+        Warn "No bink2w64Hooked.dll backup in $ExeDir; leaving bink2w64.dll as-is to avoid deleting a game file."
+    }
+}
+
+function Test-Uninstall {
+    param([string[]]$ExeDirs, [string]$ModsDir)
+    if ($DryRun) { return }
+    $ok = $true
+    foreach ($m in $ModFolders) {
+        if (Test-Path (Join-Path $ModsDir $m)) { Warn "Mod still present: $m"; $ok = $false }
+    }
+    foreach ($d in $ExeDirs) {
+        if (Test-Path (Join-Path $d "plugins\$PluginFile")) { Warn "Plugin still present in $d"; $ok = $false }
+        if (-not $SkipAsiLoader -and (Test-Path (Join-Path $d 'bink2w64Hooked.dll'))) { Warn "Loader backup still present in $d"; $ok = $false }
+    }
+    if ($ok) { Good "Uninstall verification passed." } else { Warn "Uninstall verification found leftovers (see above)." }
+}
+
+function Invoke-Uninstall {
+    param([string[]]$ExeDirs, [string]$ModsDir)
+    Step "1/3  Remove mod files"
+    Uninstall-Mods -ModsDir $ModsDir
+
+    Step "2/3  Remove native plugin"
+    foreach ($d in $ExeDirs) { Uninstall-Plugin -ExeDir $d }
+
+    Step "3/3  Restore ASI loader"
+    foreach ($d in $ExeDirs) { Uninstall-AsiLoader -ExeDir $d }
+
+    Step "Verify"
+    Test-Uninstall -ExeDirs $ExeDirs -ModsDir $ModsDir
+}
+
 # ---------- main ----------
 Assert-Environment
-Step "Hades II Co-op Mod Installer"
+$title = if ($Uninstall) { "Hades II Co-op Mod Uninstaller" } else { "Hades II Co-op Mod Installer" }
+Step $title
 if ($DryRun) { Warn "DRY-RUN mode: no files will be changed." }
 
 $root = Find-GameRoot
@@ -318,6 +412,15 @@ $modsDir = Join-Path $root 'Content\Mods'
 Good "Game root : $root"
 Good "Renderers : $($exeDirs -join '; ')"
 Good "Mods dir  : $modsDir"
+
+if ($Uninstall) {
+    Invoke-Uninstall -ExeDirs $exeDirs -ModsDir $modsDir
+    Step "Done"
+    Good "Hades II co-op mod uninstalled."
+    Warn "Save games were left untouched ($env:USERPROFILE\Saved Games\Hades II)."
+    if (-not $NoPrompt -and -not $DryRun) { Read-Host "`nPress Enter to exit" | Out-Null }
+    return
+}
 
 $work = Join-Path $env:TEMP ("h2coop-" + [Guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $work -Force | Out-Null
