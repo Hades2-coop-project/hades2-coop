@@ -75,6 +75,17 @@ function CoopRun.OnRoomPreLeave(currentRun, door)
                 HeroContext.RunWithHeroContext(hero, CheckDoorHealTrait, currentRun)
             end
 
+            -- The base game tops Magick (mana) back up on a room transition only for the
+            -- hero that actually used the door (CurrentRun.Hero). The other co-op player
+            -- keeps whatever mana they had, so P2 enters the next room without the refill
+            -- the trigger-player got (#24). Top the rest of the party up the same way.
+            -- Guarded so it can only ever RAISE mana (never null/lower it) even if a field
+            -- is unexpectedly absent.
+            local maxMana = hero.MaxMana or (GetMaxManaAmount and GetMaxManaAmount(hero))
+            if maxMana and hero.Mana and hero.Mana < maxMana then
+                hero.Mana = maxMana
+            end
+
             local removedTraits = {}
             for _, trait in pairs(hero.Traits) do
                 if trait.RemainingUses ~= nil and trait.UsesAsRooms ~= nil and trait.UsesAsRooms then
