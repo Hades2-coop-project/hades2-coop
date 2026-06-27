@@ -101,7 +101,14 @@ function RunEx.RefreshEnemyAI(targetHero)
             -- sits there shielded. Force the re-target instead -> pin TargetId straight to the
             -- surviving hero's unit so the next AI tick aims at a live player, and re-arm target
             -- acquisition by nudging the AI notify so a parked thread wakes up.
-            if enemy.AIStages ~= nil then
+            --
+            -- We treat *any* boss as stage-driven, not only units that expose an AIStages table.
+            -- The Infernal Beast softlock (#32, "boss freezes and HP won't drop past 50%" after a
+            -- player dies) is the same parked-phase-thread failure, but its invuln gate may be
+            -- modelled without a visible AIStages table. Routing every boss (enemy.IsBoss) through
+            -- the non-destructive retarget path guarantees we never tear a boss's phase machine
+            -- down. enemy.IsBoss is nil on regular enemies, so they keep the restart path below.
+            if enemy.AIStages ~= nil or enemy.IsBoss then
                 enemy.TargetId = targetId
                 if enemy.AINotifyName ~= nil then
                     notifyExistingWaiters(enemy.AINotifyName)
