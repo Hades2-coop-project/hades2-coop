@@ -13,6 +13,8 @@ local HookUtils = ModRequire "../utils/HookUtils.lua"
 local SimpleHook = ModRequire "../utils/SimpleHook.lua"
 ---@type CoopControl
 local CoopControl = ModRequire "../logic/CoopControl.lua"
+---@type CoopCamera
+local CoopCamera = ModRequire "../logic/CoopCamera.lua"
 ---@type GameStateEx
 local GameStateEx = ModRequire "../logic/GameStateEx.lua"
 
@@ -72,7 +74,22 @@ function MenuHooks.HookUiControl(funName)
 
         CoopControl.SwitchControlForMenu(playerId)
 
+        -- The co-op camera re-locks onto every alive hero each tick, so while one player
+        -- is busy in a boon/upgrade/reward screen, the OTHER player walking around scrolls
+        -- the view. Boon/Tranquil-Gain selection UI is anchored in screen space, so that
+        -- scroll drifts the options off and breaks selection (#35, #27). Pin focus to the
+        -- menu owner for the duration of the screen so a wandering teammate can't move it.
+        local ownerHero = CoopPlayers.GetHero(playerId)
+        if ownerHero then
+            for _, otherHero in CoopPlayers.PlayersIterator() do
+                if otherHero ~= ownerHero then
+                    CoopCamera.SetHeroIgnored(otherHero, true)
+                end
+            end
+        end
+
         HookUtils.onPreFunctionOnce("UnfreezePlayerUnit", function()
+            CoopCamera.ResetIgnore()
             CoopControl.ExitMenuControl()
         end)
 
