@@ -38,6 +38,15 @@ function InteractLogicHooks.wrap.OnUsed(_OnUsed, args)
                 -- A second player in context resets weapon choice for the first player
                 return;
             else
+                -- The fishing minigame registers its "FishingInput" control notify from its
+                -- own engine thread, which is NOT a child of this interactor coroutine, so
+                -- CurrentRun.Hero there falls back to the default (main) hero. Remember who
+                -- actually started fishing so the notify can be bound to their controller,
+                -- otherwise a non-main player can never land the catch (#18).
+                if functionName and string.find(functionName, "Fishing") then
+                    CoopPlayers.FishingPlayerId = CoopPlayers.GetPlayerByHero(hero)
+                end
+
                 HeroContext.RunWithHeroContext(
                     hero,
                     args[1],

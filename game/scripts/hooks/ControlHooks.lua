@@ -55,7 +55,13 @@ function ControlHooks.wrap.NotifyOnControlPressed(baseFun, argumenst)
     if argumenst.PlayerIndex then
         baseFun(argumenst)
     elseif argumenst.Notify == "FishingInput" then
-        local playerId = CoopPlayers.GetPlayerByHero(CurrentRun.Hero) or 1
+        -- Prefer the player we recorded when fishing was started; the notify is
+        -- registered from a thread without the right hero context, so falling back to
+        -- CurrentRun.Hero alone binds the catch to the main player and breaks fishing
+        -- for everyone else (#18).
+        local playerId = CoopPlayers.FishingPlayerId
+            or CoopPlayers.GetPlayerByHero(CurrentRun.Hero)
+            or 1
         argumenst.PlayerIndex = playerId
         baseFun(argumenst)
     else

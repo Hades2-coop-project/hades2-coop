@@ -24,6 +24,11 @@ CoopPlayers.PlayerUnitIdToHero = {}
 ---@type table[]
 CoopPlayers.CoopHeroes = {}
 
+---@type number | nil
+--- Player id that most recently started the fishing minigame. Used to bind the
+--- "FishingInput" control notify to the right controller (#18).
+CoopPlayers.FishingPlayerId = nil
+
 function CoopPlayers.IsPlayerHero(t)
     for i = 1, #CoopPlayers.CoopHeroes do
         if CoopPlayers.CoopHeroes[i] == t then
