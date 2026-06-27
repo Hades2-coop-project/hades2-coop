@@ -40,7 +40,7 @@ To remove the mod later:
 | `-Version`        | string | Release tag to install (e.g. `v0.1.6`). Defaults to the latest published release. |
 | `-LocalBundle`    | string | Path to an already-unpacked release folder or a local CMake `bin` output (must contain `HadesModNativeExtension.asi`, `TN_Core`, `TN_CoopMod`). Skips the GitHub download. |
 | `-SkipAsiLoader`  | switch | Do not download/install the Ultimate ASI Loader (use if you already have a loader such as ReturnOfModding / Hell2Modding). On `-Uninstall`, leaves the loader untouched. |
-| `-SkipSaveBackup` | switch | Skip the automatic save-game backup taken before installing. |
+| `-SkipSaveBackup` | switch | Skip the automatic save-game backup taken before **both** installing and uninstalling. |
 | `-DryRun`         | switch | Print every action without touching disk. Works for both install and uninstall. |
 | `-NoPrompt`       | switch | Never show interactive dialogs (no file picker, no "press Enter"). Fails instead of prompting — use for unattended/scripted runs. |
 | `-Uninstall`      | switch | Remove the mod instead of installing it (see below). No download is performed. |
@@ -58,10 +58,11 @@ To remove the mod later:
 
 **Uninstall** (`-Uninstall`)
 
-1. Removes `TN_Core` / `TN_CoopMod` from `Content\Mods`.
-2. Deletes `HadesModNativeExtension.asi` from each renderer's `plugins\` folder (and prunes the folder if it becomes empty).
-3. Restores the original `bink2w64.dll` by renaming `bink2w64Hooked.dll` back. If no backup exists, it leaves `bink2w64.dll` alone to avoid deleting a genuine game file. Honors `-SkipAsiLoader` and skips folders containing `ReturnOfModding`.
-4. **Save games are never touched.**
+1. **Back up saves** — zips `%USERPROFILE%\Saved Games\Hades II` to a timestamped archive first (unless `-SkipSaveBackup`), so a bad uninstall can't cost you progress.
+2. Removes `TN_Core` / `TN_CoopMod` from `Content\Mods`.
+3. Deletes `HadesModNativeExtension.asi` from each renderer's `plugins\` folder (and prunes the folder if it becomes empty).
+4. Restores the original `bink2w64.dll` by renaming `bink2w64Hooked.dll` back. If no backup exists, it leaves `bink2w64.dll` alone to avoid deleting a genuine game file. Honors `-SkipAsiLoader` and skips folders containing `ReturnOfModding`.
+5. **Your save games are left in place** — only the backup zip is added alongside them; nothing in the live save folder is modified or deleted.
 
 ## Examples
 
@@ -97,5 +98,5 @@ To remove the mod later:
 - **"running scripts is disabled":** run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
   in the same window before launching the script.
 - **Early development:** the mod may crash; the installer backs up your saves before touching anything.
-- **Restore a backup:** unzip the `Saved Games\Hades II.backup-<timestamp>.zip` archive back over
-  `%USERPROFILE%\Saved Games\Hades II`.
+- **Restore a backup:** unzip the `Saved Games\Hades II.backup-<reason>-<timestamp>.zip` archive
+  (where `<reason>` is `install` or `uninstall`) back over `%USERPROFILE%\Saved Games\Hades II`.

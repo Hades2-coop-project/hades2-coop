@@ -17,13 +17,15 @@
 
     Re-runnable (idempotent). Use -DryRun to preview without changing anything.
 
-    Pass -Uninstall to reverse the process: removes the mod folders and native plugin,
-    and restores the original Ultimate ASI Loader (renames bink2w64Hooked.dll back to
-    bink2w64.dll). Save games are left untouched.
+    Pass -Uninstall to reverse the process: backs up your save games first, then removes
+    the mod folders and native plugin, and restores the original Ultimate ASI Loader
+    (renames bink2w64Hooked.dll back to bink2w64.dll). Your save games themselves are left
+    in place.
 
 .PARAMETER Uninstall
-    Remove the mod instead of installing it. Deletes TN_Core / TN_CoopMod from Content\Mods,
-    removes HadesModNativeExtension.asi from each renderer's plugins folder, and (unless
+    Remove the mod instead of installing it. Backs up your save games first (unless
+    -SkipSaveBackup), then deletes TN_Core / TN_CoopMod from Content\Mods, removes
+    HadesModNativeExtension.asi from each renderer's plugins folder, and (unless
     -SkipAsiLoader) restores the original bink2w64.dll the loader displaced. No download is
     performed in this mode.
 
@@ -44,7 +46,8 @@
     ReturnOfModding / Hell2Modding).
 
 .PARAMETER SkipSaveBackup
-    Skip the automatic save-game backup.
+    Skip the automatic save-game backup that is otherwise taken before both installation
+    and uninstallation.
 
 .PARAMETER DryRun
     Print every action without touching disk.
@@ -242,11 +245,12 @@ function Resolve-BundleRoot {
 
 # ---------- install steps ----------
 function Backup-Saves {
-    if ($SkipSaveBackup) { return }
+    param([string]$Reason = 'install')
+    if ($SkipSaveBackup) { Warn "Skipping save-game backup (per -SkipSaveBackup)."; return }
     $saveDir = Join-Path $env:USERPROFILE 'Saved Games\Hades II'
     if (-not (Test-Path $saveDir)) { Warn "No save folder at '$saveDir' (nothing to back up)."; return }
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $dest = Join-Path $env:USERPROFILE "Saved Games\Hades II.backup-$stamp.zip"
+    $dest = Join-Path $env:USERPROFILE "Saved Games\Hades II.backup-$Reason-$stamp.zip"
     Do-Action "Zip saves -> $dest" { Compress-Archive -Path "$saveDir\*" -DestinationPath $dest -Force }
     Good "Saves backed up to $dest"
 }
@@ -387,13 +391,16 @@ function Test-Uninstall {
 
 function Invoke-Uninstall {
     param([string[]]$ExeDirs, [string]$ModsDir)
-    Step "1/3  Remove mod files"
+    Step "1/4  Back up save games"
+    Backup-Saves -Reason 'uninstall'
+
+    Step "2/4  Remove mod files"
     Uninstall-Mods -ModsDir $ModsDir
 
-    Step "2/3  Remove native plugin"
+    Step "3/4  Remove native plugin"
     foreach ($d in $ExeDirs) { Uninstall-Plugin -ExeDir $d }
 
-    Step "3/3  Restore ASI loader"
+    Step "4/4  Restore ASI loader"
     foreach ($d in $ExeDirs) { Uninstall-AsiLoader -ExeDir $d }
 
     Step "Verify"
@@ -417,7 +424,7 @@ if ($Uninstall) {
     Invoke-Uninstall -ExeDirs $exeDirs -ModsDir $modsDir
     Step "Done"
     Good "Hades II co-op mod uninstalled."
-    Warn "Save games were left untouched ($env:USERPROFILE\Saved Games\Hades II)."
+    Warn "Your save games were left in place ($env:USERPROFILE\Saved Games\Hades II); a timestamped backup zip was written alongside them unless -SkipSaveBackup was used."
     if (-not $NoPrompt -and -not $DryRun) { Read-Host "`nPress Enter to exit" | Out-Null }
     return
 }
@@ -426,7 +433,7 @@ $work = Join-Path $env:TEMP ("h2coop-" + [Guid]::NewGuid().ToString('N').Substri
 New-Item -ItemType Directory -Path $work -Force | Out-Null
 try {
     Step "1/5  Back up save games"
-    Backup-Saves
+    Backup-Saves -Reason 'install'
 
     Step "2/5  Acquire mod bundle"
     if ($LocalBundle) {
