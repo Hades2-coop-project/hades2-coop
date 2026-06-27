@@ -154,6 +154,12 @@ function RunHooks.wrap.KillHero(baseFun, ...)
             CoopRemovePlayerUnit(playerId)
         end
     end
+    -- If the dying player was driving an open menu/dialog (boon pick, conversation),
+    -- hand that control to the survivor so they can still advance it (#33).
+    CoopControl.HandleMenuOwnerDeath(
+        CoopPlayers.GetPlayerByHero(CurrentRun.Hero),
+        CoopPlayers.GetPlayerByHero(aliveHero)
+    )
     -- Unstuck AI
     HeroContext.RunWithHeroContext(aliveHero, RunEx.RefreshEnemyAI, aliveHero)
 end

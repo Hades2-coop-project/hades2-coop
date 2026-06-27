@@ -56,6 +56,20 @@ end
 function MenuHooks.HookUiControl(funName)
     HookUtils.wrap(funName, function(originalFun, ...)
         local playerId = CoopPlayers.GetCurrentPlayerId()
+
+        -- If the player that triggered this menu is dead (e.g. they died in the boss
+        -- fight that led into this reward/conversation room), their controller can no
+        -- longer drive the screen. Bind it to an alive player instead so it can be
+        -- advanced/closed (#33).
+        local hero = playerId and CoopPlayers.GetHero(playerId)
+        if (not hero) or hero.IsDead then
+            local aliveHero = CoopPlayers.GetFirstAliveHero()
+            local alivePlayerId = aliveHero and CoopPlayers.GetPlayerByHero(aliveHero)
+            if alivePlayerId then
+                playerId = alivePlayerId
+            end
+        end
+
         CoopControl.SwitchControlForMenu(playerId)
 
         HookUtils.onPreFunctionOnce("UnfreezePlayerUnit", function()

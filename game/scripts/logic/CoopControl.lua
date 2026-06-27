@@ -60,6 +60,10 @@ end
 function CoopControl.SwitchControlForMenu(playerId)
     local controllerId = CoopControl.Schemas.Current[playerId].ControllerId
 
+    -- Remember who currently drives the open menu/dialog so that, if that player
+    -- dies while the screen is up, we can hand control to a survivor (#33).
+    CoopControl.ActiveMenuPlayerId = playerId
+
     SetConfigOption { Name = "AllowControlHotSwap", Value = true }
     CoopSetPlayerGamepad(1, controllerId)
     for playerId = 2, #CoopControl.Schemas.Current do
@@ -68,8 +72,22 @@ function CoopControl.SwitchControlForMenu(playerId)
 end
 
 function CoopControl.ExitMenuControl()
+    CoopControl.ActiveMenuPlayerId = nil
     SetConfigOption { Name = "AllowControlHotSwap", Value = false }
     CoopControl.ResetAllPlayers()
+end
+
+--- Hand control of an open menu/dialog to an alive player when the player who was
+--- driving it dies. Without this, a boon/conversation window that player 1 opened (or
+--- that opened under player 1's context) stays bound to player 1's controller after
+--- they die, so the surviving player cannot advance or close it -> softlock (#33).
+--- No-op unless the dying player actually owns the active menu.
+---@param deadPlayerId integer?
+---@param alivePlayerId integer?
+function CoopControl.HandleMenuOwnerDeath(deadPlayerId, alivePlayerId)
+    if alivePlayerId and deadPlayerId and CoopControl.ActiveMenuPlayerId == deadPlayerId then
+        CoopControl.SwitchControlForMenu(alivePlayerId)
+    end
 end
 
 ---@param schema ControlSchema?
