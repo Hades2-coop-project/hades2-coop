@@ -24,7 +24,14 @@ void MagnetismHook::Install(IModApi::GetSymbolAddress_t GetSymbolAddress) {
 
     void *funcAddr = reinterpret_cast<void *>(GetSymbolAddress("sgg::MagnetismSystem::UpdateThing"));
     if (!funcAddr) {
-        throw std::exception("Failed to get sgg::MagnetismSystem::UpdateThing address");
+        // This symbol can be missing in some environments (e.g. a different game
+        // executable / storefront build). The sibling hooks (AnimSwapHook,
+        // AllyModelLimitsAssertHooh) all degrade gracefully when a symbol is absent.
+        // Throwing here propagates out of HadesModInit and crashes the game on load
+        // instead of just disabling the Lob magnetism fix, which is a likely cause of
+        // the Steam-only "crash on load" while the Epic build works (#37). Degrade
+        // gracefully to match the other hooks.
+        return;
     }
 
     static auto& playerManager = CoopContext::GetInstance()->GetPlayerManager();
