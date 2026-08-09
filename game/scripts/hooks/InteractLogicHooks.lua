@@ -11,8 +11,12 @@ local HeroContext = ModRequire "../logic/HeroContext.lua"
 local SimpleHook = ModRequire "../utils/SimpleHook.lua"
 ---@type Events
 local Events = ModRequire "../logic/Events.lua"
+---@type TableUtils
+local TableUtils = ModRequire "../utils/TableUtils.lua"
 
 local InteractLogicHooks = SimpleHook.New()
+
+local ESCAPE_DOORS = { 420947, 555784, 780651 }
 
 function InteractLogicHooks.wrap.OnUsed(_OnUsed, args)
     if type(args[1]) == "function" then
@@ -30,9 +34,7 @@ function InteractLogicHooks.wrap.OnUsed(_OnUsed, args)
             end
 
             local mainHero = HeroContext.GetDefaultHero()
-
-            local functionName = triggerArgs.AttachedTable and triggerArgs.AttachedTable.OnUsedFunctionName
-            if functionName == "UseEscapeDoor" and hero ~= mainHero then
+            if triggerArgs.triggeredById and TableUtils.find(ESCAPE_DOORS, triggerArgs.triggeredById) and hero ~= mainHero then
                 -- Pact door
                 -- Disable control for a second player
                 -- A second player in context resets weapon choice for the first player
