@@ -20,7 +20,7 @@ function LootQuery.UseNextHeroForLoot()
         return
     end
 
-    local startPos = CurrentRun.CoopLootCounter
+    local startPos = CurrentRun.CoopLootCounter or 0
     local playerIndex = startPos + 1
     while true do
         if playerIndex > playersCount then
